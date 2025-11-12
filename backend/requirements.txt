@@ -1,0 +1,14 @@
+# Core backend dependencies
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-dotenv>=1.0
+
+# LiveKit Agent SDK and Plugins (require >=1.4 for VoiceAssistant)
+livekit-agents
+livekit-plugins-openai
+livekit-plugins-silero
+livekit-plugins-deepgram
+livekit-plugins-groq
+
+# Optional useful tools for debugging / development
+httpx>=0.27

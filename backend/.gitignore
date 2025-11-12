@@ -1,0 +1,22 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Bytecode & caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Coverage
+.coverage*
+coverage/
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local env files
+.env
