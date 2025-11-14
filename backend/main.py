@@ -47,11 +47,21 @@ def build_livekit_token(api_key: str, api_secret: str, identity: str, room: str,
 
 app = FastAPI(title="Voice Agent Backend", version="0.1.0")
 
-# Allow local dev frontends
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
+# ✅ FIXED: Allow your Vercel frontend
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://talk-to-me-lake.vercel.app",  # Your production frontend
+]
+
+# Add FRONTEND_ORIGIN from env if set
+frontend_origin = os.getenv("FRONTEND_ORIGIN")
+if frontend_origin and frontend_origin not in allowed_origins:
+    allowed_origins.append(frontend_origin)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_origin, "http://127.0.0.1:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,4 +105,3 @@ if __name__ == "__main__":
         port=int(os.getenv("PORT", "8000")),
         reload=bool(os.getenv("RELOAD", "true").lower() == "true"),
     )
-
