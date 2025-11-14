@@ -146,7 +146,8 @@ const Page: FC = () => {
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/token?room=${roomName}`
       );
-
+      
+      console.log("Backend URL:", process.env.NEXT_PUBLIC_BACKEND_URL);
       const { token } = res.data
       console.log("✅ Token received")
 
