@@ -23,6 +23,8 @@ const Page: FC = () => {
   const [audioLevel, setAudioLevel] = useState<number>(0)
   const audioElsRef = useRef<HTMLAudioElement[]>([])
   const audioContextRef = useRef<AudioContext | null>(null)
+  const currentRoomNameRef = useRef<string>("")
+  const processedTranscriptIdsRef = useRef<Set<string>>(new Set())
 
   // UI states
   const [isListening, setIsListening] = useState<boolean>(false)
@@ -79,7 +81,7 @@ const Page: FC = () => {
 
   const disconnect = (): void => {
     try {
-      console.log("🔌 Disconnecting...")
+      console.log("🔌 Disconnecting from room:", currentRoomNameRef.current)
       room?.disconnect()
       cleanup()
     } catch (e) {
@@ -89,7 +91,12 @@ const Page: FC = () => {
     setRoom(null)
     setIsListening(false)
     setIsProcessing(false)
+    setIsAgentSpeaking(false)
     setConnecting(false)
+    setLiveTranscription("")
+    processedTranscriptIdsRef.current.clear()
+    currentRoomNameRef.current = ""
+    console.log("✅ Cleanup complete - ready for new connection")
   }
 
   const monitorAudioLevel = (track: MediaStreamAudioTrack): void => {
@@ -126,11 +133,17 @@ const Page: FC = () => {
     try {
       setConnecting(true)
       setError(null)
+      processedTranscriptIdsRef.current.clear()
       console.log("🔑 Requesting token from backend...")
+
+      // Generate a unique room name for each connection to ensure fresh worker
+      const roomName = `voice-session-${Date.now()}`
+      currentRoomNameRef.current = roomName
+      console.log("🏠 Using room:", roomName)
 
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000"
       const res = await axios.get(`${backendUrl}/token`, {
-        params: { room: "quickstart" },
+        params: { room: roomName },
       })
 
       const { token } = res.data
@@ -208,11 +221,40 @@ const Page: FC = () => {
           if (!decoded) {
             return
           }
+          console.log("📨 Data received from:", participant?.identity, "Content:", decoded)
+          // If message is from local user, it's a user message
+          // If from remote participant (the agent), it's an agent message
           const role = participant?.isLocal ? "user" : "agent"
           appendMessage(role, decoded)
         } catch (dataErr) {
           console.warn("Failed to decode LiveKit data message", dataErr)
         }
+      })
+
+      newRoom.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
+        const isLocalSpeaker = participant?.isLocal ?? false
+        segments.forEach((segment) => {
+          const text = segment.text.trim()
+          const role: Message["role"] = isLocalSpeaker ? "user" : "agent"
+
+          if (!segment.final) {
+            if (role === "user" && text) {
+              setLiveTranscription(text)
+            }
+            return
+          }
+
+          if (role === "user") {
+            setLiveTranscription("")
+          }
+
+          if (!text || processedTranscriptIdsRef.current.has(segment.id)) {
+            return
+          }
+
+          processedTranscriptIdsRef.current.add(segment.id)
+          appendMessage(role, text)
+        })
       })
 
       await newRoom.connect(wsUrl, token)
