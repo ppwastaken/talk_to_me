@@ -11,18 +11,24 @@ interface Message {
 
 interface ChatTranscriptProps {
   messages: Message[]
-  liveTranscription: string
+  userLiveTranscription: string
+  agentLiveResponse: string
   isAgentSpeaking: boolean
 }
 
-const ChatTranscript: FC<ChatTranscriptProps> = ({ messages, liveTranscription, isAgentSpeaking }) => {
+const ChatTranscript: FC<ChatTranscriptProps> = ({
+  messages,
+  userLiveTranscription,
+  agentLiveResponse,
+  isAgentSpeaking,
+}) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
     }
-  }, [messages, liveTranscription])
+  }, [messages, userLiveTranscription, agentLiveResponse])
 
   return (
     <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
@@ -52,11 +58,20 @@ const ChatTranscript: FC<ChatTranscriptProps> = ({ messages, liveTranscription, 
         </div>
       ))}
 
-      {/* Live transcription */}
-      {liveTranscription && (
+      {/* User live transcription */}
+      {userLiveTranscription && (
         <div className="flex justify-end">
           <div className="max-w-xs rounded-lg px-3 py-2 bg-gray-700 text-white rounded-br-none opacity-80 text-xs">
-            <p className="leading-relaxed italic">{liveTranscription}</p>
+            <p className="leading-relaxed italic">{userLiveTranscription}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Agent live response */}
+      {agentLiveResponse && (
+        <div className="flex justify-start">
+          <div className="max-w-xs rounded-lg px-3 py-2 bg-gray-800 text-white border border-gray-700 rounded-bl-none opacity-90 text-xs">
+            <p className="leading-relaxed italic">{agentLiveResponse}</p>
           </div>
         </div>
       )}

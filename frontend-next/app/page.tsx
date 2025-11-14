@@ -32,6 +32,7 @@ const Page: FC = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState<boolean>(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [liveTranscription, setLiveTranscription] = useState<string>("")
+  const [agentLiveResponse, setAgentLiveResponse] = useState<string>("")
   const [latency, setLatency] = useState<number>(120)
   const [isChatVisible, setIsChatVisible] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +66,15 @@ const Page: FC = () => {
     appendMessage("agent", "Tap the microphone to connect with HealthYoda.")
   }, [appendMessage])
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return
+    }
+    if (window.innerWidth < 1024) {
+      setIsChatVisible(false)
+    }
+  }, [])
+
   const cleanup = (): void => {
     audioElsRef.current.forEach((el) => {
       try {
@@ -94,6 +104,7 @@ const Page: FC = () => {
     setIsAgentSpeaking(false)
     setConnecting(false)
     setLiveTranscription("")
+    setAgentLiveResponse("")
     processedTranscriptIdsRef.current.clear()
     currentRoomNameRef.current = ""
     console.log("✅ Cleanup complete - ready for new connection")
@@ -133,6 +144,8 @@ const Page: FC = () => {
     try {
       setConnecting(true)
       setError(null)
+      setLiveTranscription("")
+      setAgentLiveResponse("")
       processedTranscriptIdsRef.current.clear()
       console.log("🔑 Requesting token from backend...")
 
@@ -236,18 +249,22 @@ const Page: FC = () => {
       newRoom.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
         const isLocalSpeaker = participant?.isLocal ?? false
         segments.forEach((segment) => {
-          const text = segment.text.trim()
+          const text = (segment.text ?? "").trim()
           const role: Message["role"] = isLocalSpeaker ? "user" : "agent"
 
           if (!segment.final) {
             if (role === "user" && text) {
               setLiveTranscription(text)
+            } else if (role === "agent" && text) {
+              setAgentLiveResponse(text)
             }
             return
           }
 
           if (role === "user") {
             setLiveTranscription("")
+          } else {
+            setAgentLiveResponse("")
           }
 
           if (!text || processedTranscriptIdsRef.current.has(segment.id)) {
@@ -312,41 +329,38 @@ const Page: FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
-      <div className="relative z-10 flex flex-col h-screen">
+    <div className="min-h-dvh bg-black text-white overflow-hidden">
+      <div className="relative z-10 flex flex-col min-h-dvh">
         <Header />
 
-        <div className="flex-1 overflow-hidden flex">
-          <div className="flex-1 flex flex-col items-center justify-center px-8 border-r border-gray-800">
-            {/* Center waveform and controls */}
+        <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+          <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-8 border-gray-800 border-b lg:border-b-0 lg:border-r gap-6">
             <MicrophoneControl isListening={connected} isProcessing={connecting || isProcessing} onClick={handleMicClick} />
 
             {liveTranscription && (
-              <div className="mt-8 text-center max-w-2xl">
+              <div className="mt-4 sm:mt-8 text-center max-w-2xl px-2">
                 <p className="text-sm text-gray-400 mb-2">Listening...</p>
                 <p className="text-lg text-white italic">{liveTranscription}</p>
               </div>
             )}
 
-            <div className="mt-12 flex flex-col items-center gap-6">
+            <div className="mt-4 sm:mt-12 w-full max-w-md flex flex-col items-center gap-6">
               <StatusIndicators isConnected={connected} isAgentSpeaking={isAgentSpeaking} latency={latency} />
             </div>
 
             {error && (
-              <div className="mt-8 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-sm max-w-lg">
+              <div className="w-full max-w-lg text-center lg:text-left mt-4 sm:mt-8 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-sm">
                 ⚠️ {error}
               </div>
             )}
           </div>
 
-          {/* Chat panel - right side */}
           <div
-            className="border-l border-gray-800 bg-gray-900 transition-all duration-300 flex flex-col"
-            style={{
-              width: isChatVisible ? "360px" : "0px",
-              opacity: isChatVisible ? 1 : 0,
-              visibility: isChatVisible ? "visible" : "hidden",
-            }}
+            className={`bg-gray-900 border-gray-800 transition-all duration-300 flex flex-col overflow-hidden border-t lg:border-t-0 lg:border-l ${
+              isChatVisible ? "opacity-100 max-h-[65vh]" : "opacity-0 max-h-0 pointer-events-none"
+            } lg:max-h-none ${isChatVisible ? "lg:w-[360px]" : "lg:w-0"} ${
+              isChatVisible ? "rounded-t-2xl lg:rounded-none" : "lg:rounded-none"
+            }`}
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
               <h2 className="font-semibold text-white text-sm">Conversation</h2>
@@ -363,7 +377,8 @@ const Page: FC = () => {
 
             <ChatTranscript
               messages={messages}
-              liveTranscription={liveTranscription}
+              userLiveTranscription={liveTranscription}
+              agentLiveResponse={agentLiveResponse}
               isAgentSpeaking={isAgentSpeaking}
             />
           </div>
@@ -372,7 +387,7 @@ const Page: FC = () => {
         {!isChatVisible && (
           <button
             onClick={() => setIsChatVisible(true)}
-            className="absolute bottom-6 right-6 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors z-20"
+            className="fixed lg:absolute bottom-6 right-4 lg:right-6 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors z-20 shadow-lg"
             title="Show chat"
           >
             Show Chat
