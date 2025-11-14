@@ -141,10 +141,11 @@ const Page: FC = () => {
       currentRoomNameRef.current = roomName
       console.log("🏠 Using room:", roomName)
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000"
-      const res = await axios.get(`${backendUrl}/token`, {
-        params: { room: roomName },
-      })
+      const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/token?room=${roomName}`
+      );
 
       const { token } = res.data
       console.log("✅ Token received")
