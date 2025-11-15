@@ -33,8 +33,8 @@ const Page: FC = () => {
   const [messages, setMessages] = useState<Message[]>([])
   const [liveTranscription, setLiveTranscription] = useState<string>("")
   const [agentLiveResponse, setAgentLiveResponse] = useState<string>("")
-  const [latency, setLatency] = useState<number>(120)
-  const [isChatVisible, setIsChatVisible] = useState<boolean>(true)
+  const [isChatVisible, setIsChatVisible] = useState<boolean>(false)
+  const [hasHydrated, setHasHydrated] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   const appendMessage = useCallback(
@@ -70,9 +70,8 @@ const Page: FC = () => {
     if (typeof window === "undefined") {
       return
     }
-    if (window.innerWidth < 1024) {
-      setIsChatVisible(false)
-    }
+    setIsChatVisible(window.innerWidth >= 1024)
+    setHasHydrated(true)
   }, [])
 
   const cleanup = (): void => {
@@ -91,11 +90,11 @@ const Page: FC = () => {
 
   const disconnect = (): void => {
     try {
-      console.log("🔌 Disconnecting from room:", currentRoomNameRef.current)
+      //console.log("🔌 Disconnecting from room:", currentRoomNameRef.current)
       room?.disconnect()
       cleanup()
     } catch (e) {
-      console.error("Disconnect error:", e)
+      //console.error("Disconnect error:", e)
     }
     setConnected(false)
     setRoom(null)
@@ -107,7 +106,7 @@ const Page: FC = () => {
     setAgentLiveResponse("")
     processedTranscriptIdsRef.current.clear()
     currentRoomNameRef.current = ""
-    console.log("✅ Cleanup complete - ready for new connection")
+    //console.log("✅ Cleanup complete - ready for new connection")
   }
 
   const monitorAudioLevel = (track: MediaStreamAudioTrack): void => {
@@ -136,7 +135,7 @@ const Page: FC = () => {
 
       updateLevel()
     } catch (e) {
-      console.warn("Audio monitoring failed:", e)
+      //console.warn("Audio monitoring failed:", e)
     }
   }
 
@@ -147,12 +146,12 @@ const Page: FC = () => {
       setLiveTranscription("")
       setAgentLiveResponse("")
       processedTranscriptIdsRef.current.clear()
-      console.log("🔑 Requesting token from backend...")
+      //console.log("🔑 Requesting token from backend...")
 
       // Generate a unique room name for each connection to ensure fresh worker
       const roomName = `voice-session-${Date.now()}`
       currentRoomNameRef.current = roomName
-      console.log("🏠 Using room:", roomName)
+      //console.log("🏠 Using room:", roomName)
 
       const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -160,16 +159,16 @@ const Page: FC = () => {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/token?room=${roomName}`
       );
       
-      console.log("Backend URL:", process.env.NEXT_PUBLIC_BACKEND_URL);
+      //console.log("Backend URL:", process.env.NEXT_PUBLIC_BACKEND_URL);
       const { token } = res.data
-      console.log("✅ Token received")
+      //console.log("✅ Token received")
 
       const tokenParts = token.split(".")
       const payload = JSON.parse(atob(tokenParts[1]))
       const wsUrl =
         payload.video?.url || process.env.NEXT_PUBLIC_LIVEKIT_URL || "wss://demovoiceagent-i8fkomm8.livekit.cloud"
 
-      console.log("🔌 Connecting to:", wsUrl)
+      //console.log("🔌 Connecting to:", wsUrl)
 
       const newRoom = new Room({
         adaptiveStream: true,
@@ -182,7 +181,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.Connected, () => {
-        console.log("✅ Connected to room:", newRoom.name)
+        //console.log("✅ Connected to room:", newRoom.name)
         setConnected(true)
         setConnecting(false)
         setIsListening(true)
@@ -190,7 +189,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.Disconnected, (reason) => {
-        console.log("❌ Disconnected:", reason)
+        //console.log("❌ Disconnected:", reason)
         setConnected(false)
         setConnecting(false)
         setIsListening(false)
@@ -199,7 +198,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-        console.log(`📻 Track subscribed from ${participant.identity}:`, track.kind)
+        //console.log(`📻 Track subscribed from ${participant.identity}:`, track.kind)
 
         if (track.kind === Track.Kind.Audio) {
           setIsAgentSpeaking(true)
@@ -227,7 +226,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
-        console.log("👤 Participant joined:", participant.identity)
+        //console.log("👤 Participant joined:", participant.identity)
       })
 
       newRoom.on(RoomEvent.DataReceived, (payload, participant) => {
@@ -236,13 +235,13 @@ const Page: FC = () => {
           if (!decoded) {
             return
           }
-          console.log("📨 Data received from:", participant?.identity, "Content:", decoded)
+          //console.log("📨 Data received from:", participant?.identity, "Content:", decoded)
           // If message is from local user, it's a user message
           // If from remote participant (the agent), it's an agent message
           const role = participant?.isLocal ? "user" : "agent"
           appendMessage(role, decoded)
         } catch (dataErr) {
-          console.warn("Failed to decode LiveKit data message", dataErr)
+          //console.warn("Failed to decode LiveKit data message", dataErr)
         }
       })
 
@@ -279,10 +278,10 @@ const Page: FC = () => {
       await newRoom.connect(wsUrl, token)
       setRoom(newRoom)
 
-      console.log("🎤 Enabling microphone...")
+      //console.log("🎤 Enabling microphone...")
       try {
         await newRoom.localParticipant.setMicrophoneEnabled(true)
-        console.log("✅ Microphone enabled")
+        //console.log("✅ Microphone enabled")
         setIsListening(true)
 
         setTimeout(() => {
@@ -295,13 +294,13 @@ const Page: FC = () => {
           }
         }, 500)
       } catch (e) {
-        console.error("❌ Mic enable failed:", e)
+        //console.error("❌ Mic enable failed:", e)
         setError("Microphone access denied. Please allow microphone access and try again.")
         setConnecting(false)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to connect"
-      console.error("❌ Connection error:", err)
+      //console.error("❌ Connection error:", err)
       setError(errorMessage)
       setConnecting(false)
       setConnected(false)
@@ -328,6 +327,8 @@ const Page: FC = () => {
     disconnect()
   }
 
+  const chatVisible = hasHydrated ? isChatVisible : false
+
   return (
     <div className="min-h-dvh bg-black text-white overflow-hidden">
       <div className="relative z-10 flex flex-col min-h-dvh">
@@ -345,7 +346,7 @@ const Page: FC = () => {
             )}
 
             <div className="mt-4 sm:mt-12 w-full max-w-md flex flex-col items-center gap-6">
-              <StatusIndicators isConnected={connected} isAgentSpeaking={isAgentSpeaking} latency={latency} />
+              <StatusIndicators isConnected={connected} isAgentSpeaking={isAgentSpeaking} />
             </div>
 
             {error && (
@@ -357,9 +358,9 @@ const Page: FC = () => {
 
           <div
             className={`bg-gray-900 border-gray-800 transition-all duration-300 flex flex-col overflow-hidden border-t lg:border-t-0 lg:border-l ${
-              isChatVisible ? "opacity-100 max-h-[65vh]" : "opacity-0 max-h-0 pointer-events-none"
-            } lg:max-h-none ${isChatVisible ? "lg:w-[360px]" : "lg:w-0"} ${
-              isChatVisible ? "rounded-t-2xl lg:rounded-none" : "lg:rounded-none"
+              chatVisible ? "opacity-100 max-h-[65vh]" : "opacity-0 max-h-0 pointer-events-none"
+            } lg:max-h-none ${chatVisible ? "lg:w-[360px]" : "lg:w-0"} ${
+              chatVisible ? "rounded-t-2xl lg:rounded-none" : "lg:rounded-none"
             }`}
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
@@ -384,7 +385,7 @@ const Page: FC = () => {
           </div>
         </div>
 
-        {!isChatVisible && (
+        {hasHydrated && !chatVisible && (
           <button
             onClick={() => setIsChatVisible(true)}
             className="fixed lg:absolute bottom-6 right-4 lg:right-6 px-4 py-2 bg-white text-black hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors z-20 shadow-lg"

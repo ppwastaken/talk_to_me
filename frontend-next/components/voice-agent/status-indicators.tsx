@@ -3,10 +3,9 @@ import type { FC } from "react"
 interface StatusIndicatorsProps {
   isConnected: boolean
   isAgentSpeaking: boolean
-  latency: number
 }
 
-const StatusIndicators: FC<StatusIndicatorsProps> = ({ isConnected, isAgentSpeaking, latency }) => {
+const StatusIndicators: FC<StatusIndicatorsProps> = ({ isConnected, isAgentSpeaking }) => {
   return (
     <div className="flex items-center gap-6 text-sm text-gray-300">
       <div className="flex items-center gap-2">
@@ -26,9 +25,6 @@ const StatusIndicators: FC<StatusIndicatorsProps> = ({ isConnected, isAgentSpeak
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400">Latency: {latency}ms</span>
-      </div>
     </div>
   )
 }

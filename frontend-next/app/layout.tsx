@@ -7,7 +7,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Voice Agent",
+  title: "Talk to Me",
   description: "Modern browser-based voice agent interface for real-time conversations",
   generator: "v0.app",
   icons: {
