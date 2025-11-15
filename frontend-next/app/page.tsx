@@ -90,11 +90,11 @@ const Page: FC = () => {
 
   const disconnect = (): void => {
     try {
-      //console.log("🔌 Disconnecting from room:", currentRoomNameRef.current)
+      console.log("🔌 Disconnecting from room:", currentRoomNameRef.current)
       room?.disconnect()
       cleanup()
     } catch (e) {
-      //console.error("Disconnect error:", e)
+      console.error("Disconnect error:", e)
     }
     setConnected(false)
     setRoom(null)
@@ -106,7 +106,7 @@ const Page: FC = () => {
     setAgentLiveResponse("")
     processedTranscriptIdsRef.current.clear()
     currentRoomNameRef.current = ""
-    //console.log("✅ Cleanup complete - ready for new connection")
+    console.log("✅ Cleanup complete - ready for new connection")
   }
 
   const monitorAudioLevel = (track: MediaStreamAudioTrack): void => {
@@ -135,7 +135,7 @@ const Page: FC = () => {
 
       updateLevel()
     } catch (e) {
-      //console.warn("Audio monitoring failed:", e)
+      console.warn("Audio monitoring failed:", e)
     }
   }
 
@@ -146,12 +146,12 @@ const Page: FC = () => {
       setLiveTranscription("")
       setAgentLiveResponse("")
       processedTranscriptIdsRef.current.clear()
-      //console.log("🔑 Requesting token from backend...")
+      console.log("🔑 Requesting token from backend...")
 
       // Generate a unique room name for each connection to ensure fresh worker
       const roomName = `voice-session-${Date.now()}`
       currentRoomNameRef.current = roomName
-      //console.log("🏠 Using room:", roomName)
+      console.log("🏠 Using room:", roomName)
 
       const backend = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -159,16 +159,16 @@ const Page: FC = () => {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/token?room=${roomName}`
       );
       
-      //console.log("Backend URL:", process.env.NEXT_PUBLIC_BACKEND_URL);
+      console.log("Backend URL:", process.env.NEXT_PUBLIC_BACKEND_URL);
       const { token } = res.data
-      //console.log("✅ Token received")
+      console.log("✅ Token received")
 
       const tokenParts = token.split(".")
       const payload = JSON.parse(atob(tokenParts[1]))
       const wsUrl =
         payload.video?.url || process.env.NEXT_PUBLIC_LIVEKIT_URL || "wss://demovoiceagent-i8fkomm8.livekit.cloud"
 
-      //console.log("🔌 Connecting to:", wsUrl)
+      console.log("🔌 Connecting to:", wsUrl)
 
       const newRoom = new Room({
         adaptiveStream: true,
@@ -181,7 +181,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.Connected, () => {
-        //console.log("✅ Connected to room:", newRoom.name)
+        console.log("✅ Connected to room:", newRoom.name)
         setConnected(true)
         setConnecting(false)
         setIsListening(true)
@@ -189,7 +189,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.Disconnected, (reason) => {
-        //console.log("❌ Disconnected:", reason)
+        console.log("❌ Disconnected:", reason)
         setConnected(false)
         setConnecting(false)
         setIsListening(false)
@@ -198,7 +198,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-        //console.log(`📻 Track subscribed from ${participant.identity}:`, track.kind)
+        console.log(`📻 Track subscribed from ${participant.identity}:`, track.kind)
 
         if (track.kind === Track.Kind.Audio) {
           setIsAgentSpeaking(true)
@@ -226,7 +226,7 @@ const Page: FC = () => {
       })
 
       newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
-        //console.log("👤 Participant joined:", participant.identity)
+        console.log("👤 Participant joined:", participant.identity)
       })
 
       newRoom.on(RoomEvent.DataReceived, (payload, participant) => {
@@ -235,13 +235,13 @@ const Page: FC = () => {
           if (!decoded) {
             return
           }
-          //console.log("📨 Data received from:", participant?.identity, "Content:", decoded)
+          console.log("📨 Data received from:", participant?.identity, "Content:", decoded)
           // If message is from local user, it's a user message
           // If from remote participant (the agent), it's an agent message
           const role = participant?.isLocal ? "user" : "agent"
           appendMessage(role, decoded)
         } catch (dataErr) {
-          //console.warn("Failed to decode LiveKit data message", dataErr)
+          console.warn("Failed to decode LiveKit data message", dataErr)
         }
       })
 
@@ -278,10 +278,10 @@ const Page: FC = () => {
       await newRoom.connect(wsUrl, token)
       setRoom(newRoom)
 
-      //console.log("🎤 Enabling microphone...")
+      console.log("🎤 Enabling microphone...")
       try {
         await newRoom.localParticipant.setMicrophoneEnabled(true)
-        //console.log("✅ Microphone enabled")
+        console.log("✅ Microphone enabled")
         setIsListening(true)
 
         setTimeout(() => {
@@ -294,13 +294,13 @@ const Page: FC = () => {
           }
         }, 500)
       } catch (e) {
-        //console.error("❌ Mic enable failed:", e)
+        console.error("❌ Mic enable failed:", e)
         setError("Microphone access denied. Please allow microphone access and try again.")
         setConnecting(false)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to connect"
-      //console.error("❌ Connection error:", err)
+      console.error("❌ Connection error:", err)
       setError(errorMessage)
       setConnecting(false)
       setConnected(false)
