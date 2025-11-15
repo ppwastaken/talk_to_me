@@ -47,7 +47,7 @@ def build_livekit_token(api_key: str, api_secret: str, identity: str, room: str,
 
 app = FastAPI(title="Voice Agent Backend", version="0.1.0")
 
-# ✅ FIXED: Allow your Vercel frontend
+# ✅ FIXED: Allow your Vercel frontend (both production and preview deployments)
 allowed_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -62,6 +62,7 @@ if frontend_origin and frontend_origin not in allowed_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # ✅ Allow all Vercel preview deployments
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
